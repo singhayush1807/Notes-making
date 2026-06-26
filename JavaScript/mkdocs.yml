@@ -1,0 +1,7 @@
+site_name: JavaScript Notes
+
+theme:
+  name: material
+
+plugins:
+  - search
