@@ -493,3 +493,171 @@ new Car() = naya object banana (instantiation)
 | **Object** | Entity with state and behavior |
 | **Class** | Blueprint used to create objects |
 | **Instantiation** | Creating an object from a class |
+
+---
+
+## 3. Architecture Decision: Procedural vs OOP: Car + Owner Case Study
+
+### Problem Statement
+
+> **Design Prompt**
+>
+> "Ek real-life `Car` aur `Owner` represent karo. Owner us car ko drive kare."
+
+Yeh ek classic **LLD design question** hai. Interviewer dekhta hai ki tu sochta kaise hai aur design kaise karta hai.
+
+### Decision Context
+
+Is problem mein do entities clearly dikh rahi hain:
+
+- **Car**: jiske paas state hai, jaise `brand`, `model`, `isEngineOn`, `currentGear`
+- **Owner**: jo car ko drive karta hai
+
+> **Additional Explanation**
+>
+> Jab problem statement mein nouns aur interactions clearly milte hain, OOP usually natural fit hota hai. Yahan nouns hain `Car` and `Owner`, aur interaction hai `Owner drives Car`.
+
+---
+
+### Approach 1: Procedural Programming: The Bottleneck
+
+#### Code Structure
+
+```c
+// Sab kuch bikhre hue variables: koi grouping nahi
+string brand;
+string model;
+bool isEngineOn;
+int currentGear;
+string ownerName;
+
+// Standalone functions: koi ownership nahi
+void start()      { isEngineOn = true; }
+void shiftGear()  { currentGear++; }
+void accelerate() { /* ... */ }
+
+// Drive function: sab manually pass karna padta hai
+void drive(string brand, string model) {
+    start();
+    shiftGear();
+    accelerate();
+}
+```
+
+#### Failure Cases: Kahan Toot Jaata Hai?
+
+##### Problem 1: Doosri Car Add Karo
+
+```c
+// Car 2 ke liye duplicate variables banana padega
+string brand2;
+string model2;
+bool isEngineOn2;
+
+// ...aur doosra owner bhi?
+string ownerName2;
+
+// Yeh nahi scale kar sakta!
+```
+
+##### Problem 2: Data Scattering
+
+Car ke variables aur Owner ke variables sab ek hi jagah bikhre hue hain. Koi bhi `isEngineOn = false` set kar sakta hai bina permission ke.
+
+##### Problem 3: Function Confusion
+
+`start()` kis car ka?
+
+`drive()` mein manually data pass karna padta hai. Agar kal `Car` mein 10 new variables add karein, toh `drive()` ka signature bhi badalna padega.
+
+> **Common Mistake**
+>
+> Procedural version mein function names simple lagte hain, lekin ownership unclear hoti hai. LLD mein ownership clarity bahut important hai.
+
+---
+
+### Approach 2: OOP: The Solution
+
+#### Code Structure
+
+```cpp
+class Car {
+public:
+    string brand;
+    string model;
+    bool isEngineOn;
+
+    void start()      { isEngineOn = true; }
+    void stop()       { isEngineOn = false; }
+    void shiftGear()  { /* gear logic */ }
+    void accelerate() { /* speed logic */ }
+};
+
+class Owner {
+public:
+    string name;
+
+    void drive(Car car) {      // Car object seedha parameter mein
+        car.start();           // Owner directly car methods call karta hai
+        car.shiftGear();
+        car.accelerate();
+    }
+};
+
+// Usage:
+Car myCar;
+myCar.brand = "Honda";
+
+Owner ayush;
+ayush.name = "Ayush Kumar";
+ayush.drive(myCar);            // Clean! Natural! Scalable!
+```
+
+#### Advantages
+
+| Advantage | Why It Matters |
+|---|---|
+| **Real-world mirror** | `Owner` drives `Car`: exactly waisa hi code. |
+| **Scalable** | Doosri car chahiye? `Car bmw; bmw.brand = "BMW";` done. |
+| **Readable** | Code padhne se samajh aata hai kya ho raha hai. |
+| **Data ownership** | Har variable apni class ka hai: confusion nahi. |
+
+> **Additional Explanation**
+>
+> OOP design mein behavior ko us entity ke paas rakho jiske paas us behavior ki responsibility naturally belong karti hai. `Car` knows how to `start()`, `shiftGear()`, and `accelerate()`. `Owner` knows how to `drive(car)`.
+
+---
+
+### Side-by-Side Comparison
+
+| Aspect | Procedural | OOP |
+|---|---|---|
+| **Car representation** | Bikhre hue variables | `Car` class mein encapsulated |
+| **Second car add karo** | Sab variables duplicate karo | `Car car2 = new Car()` |
+| **Data security** | Koi bhi modify kar sakta hai | Access modifiers se protect |
+| **Readability** | `drive(brand, model)` confusing | `owner.drive(car)` natural |
+| **Real-world modeling** | Force-fit karna padta hai | Natural fit |
+| **Scalability** | Spaghetti code | Clean, modular |
+
+### Architecture Decision
+
+> **Decision:** Use **OOP** for `Car + Owner` modeling.
+>
+> **Reason:** Entities are naturally object-like, state and behavior should stay together, and future scaling is much cleaner.
+
+### Summary: Section 3
+
+Procedural mein variables bikhre hote hain, functions ko sab manually pass karna padta hai, aur scaling nightmare ban sakti hai.
+
+OOP mein har entity apni class mein encapsulated hoti hai, objects naturally interact karte hain, aur scaling trivial ho jaati hai.
+
+### Cheat Sheet
+
+```text
+Procedural: brand, model (scattered) -> drive(brand, model) [manual]
+OOP:        Car { brand, model, start() } -> owner.drive(car) [natural]
+
+New car?
+Procedural -> 10 new variables
+OOP        -> Car car2 = new Car()  [one line]
+```
